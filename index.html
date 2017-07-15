@@ -1,0 +1,164 @@
+<html>
+    <head>
+        <title>IO Chat</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+        <style>
+            #logoutForm{
+                float:right;
+                margin-right: 100px;
+            }
+            #nickWrap{
+                margin-top: 200px;
+            }
+            #chat{
+                height: 500px;
+                border: 1px #000 solid;
+            }
+            #contentWrap{
+                display: none;
+                margin-left: 150px;
+                margin-top: 50px;
+            }
+            #users,#chatWrap{
+                float: left;
+                margin-left: 50px;
+            }
+            .error{
+                color: red;
+            }
+            .whisper{
+                color:gray;
+                font-style: italic;
+            }
+            .msg,.whisper,.error{
+                margin-left: 10px;
+            }
+        </style>
+    </head>
+    <body style="background: #00ffd8">
+        
+        <div id="nickWrap" class="text-center">
+            <h3>Enter a Username and Password</h3>
+            <p id="nickError" class="error"></p>
+            <br/><br/>
+            <form id="setNick" class="form-inline">
+                <div class="form-group">
+                  <label for="usr">UserName:</label>
+                  <input type="text" class="form-control" id="nickname">
+                </div>
+                <div class="form-group">
+                  <label for="pwd">Password:</label>
+                  <input type="password" class="form-control" id="pass">
+                </div>
+                <input type="submit" class="btn btn-default" value="Sign In/Log In">
+            </form>
+        </div>
+        
+        <div id="contentWrap">
+            <div id="chatWrap">  
+                <div id="chat" class="panel panel-default">
+                  <div class="panel-heading">Chat</div>
+                </div>
+                <form id="send-message" class="form-inline">
+                    <input size="35" id="message" class="form-control">
+                    <input type="submit" value="Send" class="btn btn-default">
+                </form>
+            </div>
+            <div class="panel panel-primary" id="users"></div>
+            <form id="logoutForm" class="form-inline">
+                <input type="submit" value="LOGOUT" class="btn btn-default">
+            </form>
+        </div> 
+
+        <script type="text/javascript"  src="http://code.jquery.com/jquery-latest.min.js"></script>
+        <script type="text/javascript"  src="/socket.io/socket.io.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+        <script>
+            jQuery(function($) {
+                var socket = io.connect();
+                var $nickForm=$('#setNick');
+                var $nickError=$('#nickError');
+                var $nickBox=$('#nickname');
+                var $messageForm=$('#send-message');
+                var $messageBox=$('#message');
+                var $chat=$('#chat');
+                var $users=$('#users');
+                var $pass=$('#pass');
+                var $logout=$('#logoutForm');
+                
+                 function getCookie(name) {
+                    var r = document.cookie.match("\\b" + name + "=([^;]*)\\b");
+                    return r ? r[1] : undefined;     
+                }
+                
+                if(getCookie("up")){
+                    var array = getCookie("up").split(",");
+                    socket.emit('new user', array[0], array[1], function(data) {
+                    if(data){
+                        $('#nickWrap').hide();
+                        $('#contentWrap').show();
+                    } else{
+                        $nickError.html('Username Invalid/Exists. Password Incorrect');
+                    }      
+                    });
+                }
+                
+
+                $nickForm.submit(function(e){
+                    document.cookie = "up="+$nickBox.val()+","+$pass.val()+";expires=Thu, 18 Dec 2020 12:00:00 UTC";
+                    e.preventDefault();
+                    socket.emit('new user', $nickBox.val(), $pass.val(), function(data) {
+                    if(data){
+                        $('#nickWrap').hide();
+                        $('#contentWrap').show();
+                    } else{
+                        $nickError.html('Username Invalid/Exists. Password Incorrect');
+                    }      
+                    });
+                    $nickBox.val('');
+                    $pass.val('');
+                });
+                
+                $messageForm.submit(function(e) {
+                    e.preventDefault();
+                    socket.emit('send message',$messageBox.val(), function(data){
+                         $chat.append('<span class="error">' + data + '</span><br/>');
+                    });
+                    $messageBox.val('');
+                });
+                
+                $logout.submit(function(e){
+                    e.preventDefault()
+                    document.cookie = "up=;expires=Thu, 18 Dec 1990 12:00:00 UTC";
+                    location.reload();
+                });
+                
+                socket.on('load old msgs', function(docs){
+                    for(i=docs.length-1; i>=0; i--)          
+                        displayMsg(docs[i]);       
+                });
+
+                socket.on('new message',function(data) {
+                    displayMsg(data);
+                });
+                
+                function displayMsg(data){
+                    $chat.append('<span class="msg"><b>' + data.nick + ': </b>' + data.msg + '</span><br/>');    
+                }
+                
+                socket.on('whisper', function(data){
+                   $chat.append('<span class="whisper"><b>' + data.nick + ': </b>' + data.msg + '</span><br/>'); 
+                });
+                
+                socket.on('usernames', function(data) {
+                    var html = '<div class="panel-heading">Users Online</div>';
+                    for(i=0;i<data.length;i++)
+                        html+='<div class="panel-body">'+ data[i]+ '</div>';
+                    $users.html(html);
+                });
+            });
+        </script>
+
+    </body>
+</html>

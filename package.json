@@ -1,0 +1,18 @@
+{
+  "name": "iochat",
+  "version": "1.0.0",
+  "description": "Chat Application",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Rishabh Gupta",
+  "license": "ISC",
+  "dependencies": {
+    "express": "4.15.2",
+    "express-session": "^1.15.2",
+    "mongoose": "4.9.9",
+    "password-hash": "1.2.2",
+    "socket.io": "2.0.1"
+  }
+}
